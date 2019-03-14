@@ -1,104 +1,80 @@
-// Step 4: Create an infinite scrolling lazily loaded list
-
 import 'package:flutter/material.dart';
-import 'package:english_words/english_words.dart';
+import 'package:flutter/foundation.dart';
 
-void main() => runApp(new MyApp());
+class Todo {
+  final String title;
+  final String description;
 
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return new MaterialApp(
-      title: 'Startup Name Generator',
-      theme: new ThemeData.dark(),
-      home: new RandomWords(),
-    );
-  }
+  Todo(this.title, this.description);
 }
 
-class RandomWords extends StatefulWidget {
-  @override
-  createState() => new RandomWordsState();
+void main() {
+  runApp(new MaterialApp(
+    title: 'Passing Data',
+    home: new TodoScreen(
+      todos: new List.generate(
+        20,
+        (i) => new Todo(
+              'Todo $i',
+              'A description of what needs to be done for Todo $i',
+            ),
+      ),
+    ),
+  ));
 }
 
-class RandomWordsState extends State<RandomWords> {
-  final _suggestions = <WordPair>[];
-  final _saved = new Set<WordPair>();
-  final TextStyle _biggerFont = new TextStyle(fontSize: 18.0);
+class TodoScreen extends StatelessWidget {
+  final List<Todo> todos;
+  TodoScreen({Key key, @required this.todos}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
-      appBar: new AppBar(
-        title: new Text('Startup Name Generator'),
-        actions: <Widget>[
-          new IconButton(icon: new Icon(Icons.list), onPressed: _pushSaved),
-        ],
-      ),
-      body: _buildSuggestions(),
-    );
-  }
-
-  void _pushSaved() {
-    Navigator.of(context).push(
-      new MaterialPageRoute(
-        builder: (context) {
-          final tiles = _saved.map(
-            (pair) {
-              return new ListTile(
-                title: new Text(
-                  pair.asPascalCase,
-                  style: _biggerFont,
-                ),
-              );
-            },
-          );
-          final divided = ListTile.divideTiles(
-            context: context,
-            tiles: tiles,
-          ).toList();
-
-          return new Scaffold(
-            appBar: new AppBar(
-              title: new Text('Saved Suggestions'),
-            ),
-            body: new ListView(children: divided),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSuggestions() {
-    return new ListView.builder(
-      padding: const EdgeInsets.all(16.0),
-      itemBuilder: (context, i) {
-        if (i.isOdd) return new Divider();
-
-        final index = i ~/ 2;
-        if (index >= _suggestions.length) {
-          _suggestions.addAll(generateWordPairs().take(10));
-        }
-        return _buildRow(_suggestions[index]);
-      },
-    );
-  }
-
-  Widget _buildRow(WordPair pair) {
-    final alreadySaved = _saved.contains(pair);
-    return new ListTile(
-        title: new Text(
-          pair.asPascalCase,
-          style: _biggerFont,
+        appBar: new AppBar(
+          title: new Text('Todos'),
         ),
-        trailing: new Icon(
-          alreadySaved ? Icons.favorite : Icons.favorite_border,
-          color: alreadySaved ? Colors.red : null,
+        body: new ListView.builder(
+          itemCount: todos.length,
+          itemBuilder: (context, index) {
+            final Todo todo = todos[index];
+            return new Dismissible(
+                key: new Key(todo.title),
+                onDismissed: (direction) {
+                  todos.removeAt(index);
+                  Scaffold.of(context).showSnackBar(
+                      new SnackBar(content: new Text('${todo.title} dismissed')));
+                },
+                background: new Container(color: Colors.red),
+                child: new ListTile(
+                  title: new Text("${todo.title}"),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      new MaterialPageRoute(
+                        builder: (context) =>
+                            new DetailScreen(todo: todo),
+                      ),
+                    );
+                  },
+                ));
+          },
+        ));
+  }
+}
+
+class DetailScreen extends StatelessWidget {
+  final Todo todo;
+
+  DetailScreen({Key key, @required this.todo}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return new Scaffold(
+        appBar: new AppBar(
+          title: new Text("${todo.title}"),
         ),
-        onTap: () {
-          setState(() {
-            alreadySaved ? _saved.remove(pair) : _saved.add(pair);
-          });
-        });
+        body: new Padding(
+            padding: new EdgeInsets.all(16.0),
+            child: new Text("${todo.description}")));
   }
 }
